@@ -13,10 +13,20 @@ typedef enum{
 
 string sym=",;:<>=+-*/(){}";
 #define SYMLENGTH 17
+//(TK_GTR, >),  (TK_LEQ, <=),  (TK_GEQ, >=)
+//(TK_COMMA, ,),  (TK_SEMICOLON, ;),  (TK_ASSIGN, :=)
+//(TK_ADD, +),  (TK_SUB, -),  (TK_MUL, *)
+//(TK_DIV, /),  (TK_LP, (),  (TK_RP, ))
+//(TK_LSS, <),  (TK_EQU, =)
+
 string symArray[17]={
     ">","<=",">=",",","\'","{","}",
     ";",":=","+","-","*","/","(",")","<","="
 };
+typedef enum{
+    TK_GTR,TK_LEQ,TK_GEQ,TK_COMMA,TK_SEMICOLON,TK_ASSIGN,TK_ADD,TK_SUB,
+    TK_MUL,TK_DIV,TK_LP,TK_RP,TK_LSS,TK_EQU
+} SYMTYPE;
 
 //保留字集合.使用key[TK_*]来引用
 #define KEYLENGTH 18

@@ -64,10 +64,13 @@ void getToken(){
             
             switch(currentState){
                 case START:
+                    //NUM = d* , d>0&&d<9
                     if(isNumber(currentLetter))
                         currentState = NUM;
+                    //ID=l(l|d)* , l>A&&a<z
                     else if(isAlphabet(currentLetter))
                         currentState = ID;
+                    //sym属于sym集合
                     else if(sym.find(currentLetter)!=-1){
                         currentState = SYM;
                         currentWord+=currentLetter;
@@ -85,6 +88,7 @@ void getToken(){
                         currentWord="";
                         break;
                     }
+                    //字符串由\'包含
                     else if(currentLetter == '\''){
                         currentState = STR;
                         //cout<<"START ";
@@ -92,6 +96,8 @@ void getToken(){
                         //cout<<endl;
                         break;
                     }
+                    //to do 由{}组成的comments
+                    //起始状态不接收分隔符
                     else if(isDelim(currentLetter)){
                         break;
                     }
