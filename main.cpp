@@ -1,7 +1,7 @@
 #include "common.h"
 //#include "scan.h"
 //全局变量
-int lineNum = 0;
+int lineNum = 1;
 int colNum = 0;
 fstream *origin;
 fstream *step1;
@@ -17,19 +17,15 @@ char getNextChar(fstream *origin){
 		return -1;//indicate reading file fail;
 	}
 	char buffer;
-	//cout<<lineNum<<": ";
-	//memset(buffer,0,256);
-	//while(origin->get(buffer))
-	//{
+    origin->get(buffer);
     if(origin->eof()){
         return -2;//inform that the file complete
     }
 
-    origin->get(buffer);
 	if(!isLegal(buffer)){
 		cout<<"\n Illegal alphabet: "<<buffer<<" in the source code in Line:"<<lineNum<<" Column: "<<colNum<<endl;
 	}
-	if(buffer == '\n'||buffer== '\r'){
+	if(buffer == '\n'||buffer == '\r'){
         lineNum++;
         colNum = 0;
 	}else{
@@ -71,39 +67,25 @@ void getToken(){
                     else if(isAlphabet(currentLetter))
                         currentState = ID;
                     //sym属于sym集合
-                    else if(sym.find(currentLetter)!=-1){
-                        currentState = SYM;
-                        currentWord+=currentLetter;
-                        char nextToCheck = getNextChar(origin);
-                        if(isSym(nextToCheck)){
-                            currentWord+=nextToCheck;
-                        }else{
-                            origin->unget();
-                        }
-                        //cout<<"START ";
-                        //inform(currentState);
-                        //cout<<endl;
-                        cout<<" (SYM "<< currentWord<<") ";
-                        currentState = START;
-                        currentWord="";
+                    else if(currentLetter == '{')
+                        currentState = NOTE;
+                    else if(currentLetter == '}'){
+                        cout<<"\n Miss Left Bracket in Line "<<lineNum<<endl; 
                         break;
                     }
                     //字符串由\'包含
                     else if(currentLetter == '\''){
                         currentState = STR;
-                        //cout<<"START ";
-                        //inform(currentState);
-                        //cout<<endl;
-                        break;
+                        break;//因为单引号本身不需要加入字符串中,所以break跳过
+                    }
+                    else if(sym.find(currentLetter)!=-1){
+                        currentState = SYM;
                     }
                     //to do 由{}组成的comments
                     //起始状态不接收分隔符
                     else if(isDelim(currentLetter)){
                         break;
                     }
-                    //cout<<"START ";
-                    //inform(currentState);
-                    //cout<<endl;
                     currentWord+=currentLetter;
                     break;
                 case NUM:
@@ -114,44 +96,82 @@ void getToken(){
                         if(isSym(currentLetter))
                           origin->unget();
                         break;
-                    } else if(!isNumber(currentLetter)){
-                        cout<< "\nillegal variable name\n";
-                        //吃掉后面所有不合法的字母
-                    }
+                    } 
+                    
                     currentWord += currentLetter;
+                    if(!isNumber(currentLetter)){
+                        cout<< "\n Invalid variable in line "<<lineNum<<" colomn "<<colNum<<"\n";
+                        //吃掉后面所有不合法的字母
+                        while(true){
+                            currentLetter = getNextChar(origin);
+                            if(isDelim(currentLetter)||currentLetter==';'){
+                                currentWord="";
+                                currentState = START;
+                                break;
+                            }
+                        }
+                    }
                     break;
                 case ID:
                     //DFA已经进入第二步,所有的字母,数字均可以让ID在本状态下保持
                     if(isAlphabet(currentLetter)||isNumber(currentLetter)){
                         currentWord += currentLetter; 
-                    }else if(isSym(currentLetter)||isDelim(currentLetter)){
+                    }else {
                         if(isKey(currentWord)){
                             cout<<" (KEY "<<currentWord<<") ";
                         }else 
                             cout<<" (ID "<<currentWord<<") ";
                         currentState = START;
                         currentWord="";
-                        if(isSym(currentLetter))
+                        if(isSym(currentLetter)||currentLetter=='\''||currentLetter=='{')
                           origin->unget();
                     }
                     break;
                 case STR:
-                    cout<<" (STR ";
+                    //如果找到单引号后第一个字符就是换行符,表明本行缺少左单引号
+                    if(currentLetter=='\n'||currentLetter=='\r')
+                        cout<<"\n Miss left quotation mark in Line "<<lineNum<<endl;
+                    else
                     while(true){
-                        if(currentLetter=='\'')
-                          break;
+                        if(currentLetter=='\''){
+                            cout<<" (STR ";
+                            cout<<currentWord<<") ";
+                            break;
+                        }
                         if(currentLetter=='\n'||currentLetter=='\r'){
-                            cout<<" ERROR HERE ";
+                            cout<<"\n Miss right quotation mark in Line "<<lineNum<<endl;
                             break;
                         }
                         currentWord+=currentLetter;
                         currentLetter=getNextChar(origin);
                     }
-                    cout<<currentWord<<") ";
                     currentWord="";
                     currentState = START;
 
                     break;
+                case SYM:
+                    if(isSym(currentLetter)){
+                        currentWord+=currentLetter;
+                    }else{
+                        if(!currentLetter == '\n')
+                            origin->unget();
+                    }
+                    //cout<<"START ";
+                    //inform(currentState);
+                    //cout<<endl;
+                    cout<<" (SYM "<< currentWord<<") ";
+                    currentState = START;
+                    currentWord="";
+                    break;
+                    
+                case NOTE:
+                    if(currentLetter == '}'){
+                        currentState = START;
+                        currentWord = "";
+                    }else if(currentLetter == '\n'||currentLetter == '\r'){
+                        //无法匹配右括号
+                        cout<<"\n Miss right bracket in line "<<lineNum<<endl;
+                    }
 
             }
             if((currentLetter = getNextChar(origin)) == -2){
