@@ -12,6 +12,8 @@ bool isLegal(char);
 bool isSym(char);
 bool isKey(string);
 bool isDelim(char);
+TokenType matchToken(string);
+ 
 char getNextChar(fstream *origin){
 	if(origin==NULL){
 		return -1;//indicate reading file fail;
@@ -49,7 +51,7 @@ void inform(int state){
       cout<<"STR";
 }
 void getToken(){
-	origin = new fstream("/home/slixurd/university/tiny/in",ios::in);
+	origin = new fstream("/home/slixurd/university/tiny/tinyplus/in",ios::in);
     int currentState = START;
     string currentWord = "";
     char currentLetter;
@@ -90,6 +92,7 @@ void getToken(){
                     break;
                 case NUM:
                     if(isSym(currentLetter)||isDelim(currentLetter)){
+
                         cout<<" (NUM "<<currentWord<<") ";
                         currentWord="";
                         currentState = START;
@@ -161,7 +164,25 @@ void getToken(){
                     //cout<<"START ";
                     //inform(currentState);
                     //cout<<endl;
-                    cout<<" (SYM "<< currentWord<<") ";
+                    //
+
+                    bool isLegalSym;
+                    isLegalSym=false;
+                    for(int i=0;i<TokenLength;i++){
+                        if(currentWord==tokenArray[i])
+                          isLegalSym=true;
+                    }
+                    if(!isLegalSym){
+                        isError = true; 
+                        cout<<"\nERROR,NO SUCH SYMBOL;\n";
+                    }
+                    else{
+                        Token p;
+                        p.kind = matchToken(currentWord);
+                        p.value=currentWord;
+                        tokenList.push_back(p);
+                        cout<<" (SYM "<< currentWord<<") ";
+                    }
                     currentState = START;
                     currentWord="";
                     break;
@@ -185,16 +206,22 @@ void getToken(){
 	origin->close();
 }
 int main(){
-//    getToken();
+    isError = false;
+    getToken();
 	//origin = new fstream("/home/slixurd/university/tiny/in",ios::in);
     //getNextChar(origin);    
     //origin->unget();
-
-    cout<< (TK_TRUE == TK_GTR);
     return 0;
 }
 
-
+TokenType matchToken(string toMatch){
+    for(int i = 0;i < TokenLength;i++){
+        if(toMatch == tokenArray[i]){
+            return (TokenType) i;
+        }
+    }
+    return (TokenType)-1;
+}
 bool isNumber(char check){
 	if( check <= '9' && check >= '0')
 		return true;
