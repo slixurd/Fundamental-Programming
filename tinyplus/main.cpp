@@ -5,20 +5,18 @@ int lineNum = 1;
 int colNum = 0;
 fstream *origin;
 fstream *step1;
+Token *token=NULL;
+static bool isError;
+char currentLetter;
+SymManager* symManager;
+list<Token> tokenList;
 
-bool isNumber(char);
-bool isAlphabet(char);
-bool isLegal(char);
-bool isSym(char);
-bool isKey(string);
-bool isDelim(char);
-TokenType matchToken(string);
- 
 char getNextChar(fstream *origin){
 	if(origin==NULL){
 		return -1;//indicate reading file fail;
 	}
 	char buffer;
+    char lastLetter = currentLetter;
     origin->get(buffer);
     if(origin->eof()){
         return -2;//inform that the file complete
@@ -28,8 +26,8 @@ char getNextChar(fstream *origin){
 		cout<<"\n Illegal alphabet: "<<buffer<<" in the source code in Line:"<<lineNum<<" Column: "<<colNum<<endl;
 	}
 	if(buffer == '\n'||buffer == '\r'){
-        lineNum++;
-        colNum = 0;
+            colNum = 0;
+            lineNum++;
 	}else{
         colNum++;
     }
@@ -51,11 +49,13 @@ void inform(int state){
       cout<<"STR";
 }
 void getToken(){
+    
+    Token tmpToken;
 	origin = new fstream("/home/slixurd/university/tiny/tinyplus/in",ios::in);
     int currentState = START;
     string currentWord = "";
-    char currentLetter;
     if((currentLetter = getNextChar(origin)) == -1){
+        isError=true;
         cout << "INPUT FILE ERROR";
     }else{
         while(true){
@@ -93,6 +93,9 @@ void getToken(){
                 case NUM:
                     if(isSym(currentLetter)||isDelim(currentLetter)){
 
+                        tmpToken.kind = TK_INT; 
+                        tmpToken.value=currentWord;
+                        tokenList.push_back(tmpToken);
                         cout<<" (NUM "<<currentWord<<") ";
                         currentWord="";
                         currentState = START;
@@ -123,9 +126,16 @@ void getToken(){
                         currentWord += currentLetter; 
                     }else {
                         if(isKey(currentWord)){
+                            tmpToken.kind = matchToken(currentWord);
+                            tmpToken.value=currentWord;
+                            tokenList.push_back(tmpToken);
                             cout<<" (KEY "<<currentWord<<") ";
-                        }else 
+                        }else{ 
+                            tmpToken.kind = TK_ID;
+                            tmpToken.value=currentWord;
+                            tokenList.push_back(tmpToken);
                             cout<<" (ID "<<currentWord<<") ";
+                        }
                         currentState = START;
                         currentWord="";
                         if(isSym(currentLetter)||currentLetter=='\''||currentLetter=='{')
@@ -134,16 +144,21 @@ void getToken(){
                     break;
                 case STR:
                     //如果找到单引号后第一个字符就是换行符,表明本行缺少左单引号
-                    if(currentLetter=='\n'||currentLetter=='\r')
+                    if(currentLetter=='\n'||currentLetter=='\r'){
                         cout<<"\n Miss left quotation mark in Line "<<lineNum<<endl;
-                    else
+                        isError = true; 
+                    }else
                     while(true){
                         if(currentLetter=='\''){
+                            tmpToken.kind = TK_STR; 
+                            tmpToken.value=currentWord;
+                            tokenList.push_back(tmpToken);
                             cout<<" (STR ";
                             cout<<currentWord<<") ";
                             break;
                         }
                         if(currentLetter=='\n'||currentLetter=='\r'){
+                            isError = true; 
                             cout<<"\n Miss right quotation mark in Line "<<lineNum<<endl;
                             break;
                         }
@@ -155,10 +170,10 @@ void getToken(){
 
                     break;
                 case SYM:
-                    if(isSym(currentLetter)){
+                    //因为第二个字母只有可能是=,例如>=,<=,:=
+                    if(currentLetter=='='){
                         currentWord+=currentLetter;
-                    }else{
-                        if(!currentLetter == '\n')
+                    }else if(currentLetter!='\r' && currentLetter!='\n'){
                             origin->unget();
                     }
                     //cout<<"START ";
@@ -177,10 +192,9 @@ void getToken(){
                         cout<<"\nERROR,NO SUCH SYMBOL;\n";
                     }
                     else{
-                        Token p;
-                        p.kind = matchToken(currentWord);
-                        p.value=currentWord;
-                        tokenList.push_back(p);
+                        tmpToken.kind = matchToken(currentWord);
+                        tmpToken.value=currentWord;
+                        tokenList.push_back(tmpToken);
                         cout<<" (SYM "<< currentWord<<") ";
                     }
                     currentState = START;
@@ -193,6 +207,7 @@ void getToken(){
                         currentWord = "";
                     }else if(currentLetter == '\n'||currentLetter == '\r'){
                         //无法匹配右括号
+                        isError = true; 
                         cout<<"\n Miss right bracket in line "<<lineNum<<endl;
                     }
 
@@ -205,10 +220,22 @@ void getToken(){
 
 	origin->close();
 }
+
+
 int main(){
     isError = false;
+    symManager=new SymManager();
     getToken();
-	//origin = new fstream("/home/slixurd/university/tiny/in",ios::in);
+    program();
+
+    /*
+     while(!tokenList.empty()){//获取所有token
+        cout<<tokenString[tokenList.front().kind]<<" ";
+        tokenList.pop_front();
+    }
+    */
+
+    //origin = new fstream("/home/slixurd/university/tiny/in",ios::in);
     //getNextChar(origin);    
     //origin->unget();
     return 0;
@@ -256,3 +283,143 @@ bool isLegal(char check){
 		return true;
 	return false;
 }
+
+
+bool matchType(TokenType kind_match){
+    if(token->kind == kind_match){
+        return true; 
+    }else{
+        //cout<<"类型应匹配"<<tokenString[kind_match]<<",遇到"<<tokenString[token->kind]<<"\n";
+        return false;
+    }
+}
+
+//==========================
+//语法树的生成
+//==========================
+void nextToken(){
+    if(token==NULL){
+        token = new Token;
+        token = &tokenList.front();
+    }
+    if(!tokenList.empty()){
+        token = &tokenList.front();
+        tokenList.pop_front();
+    }
+    cout<<tokenString[token->kind]<<endl;
+}
+
+void unNextToken(){
+    if(token!=NULL)
+      tokenList.push_front(*token);
+}
+
+TreeNode* program(){
+    cout<<"\n===========declarations分析============="<<endl;
+    declarations();
+    return stmt_sequence();
+}
+TreeNode* declarations(){//declaration -> decl;declarations|nil
+    decl();
+    cout<<"========\n";
+    if(matchType(TK_SEMICOLON)){
+        nextToken();
+            cout<<tokenString[token->kind]<<"sss";
+        if(token->kind==TK_BOOL||token->kind==TK_INT||token->kind==TK_STR){
+            unNextToken();
+            declarations();    
+        }
+    }else{
+        cout<<"错误匹配\n";
+    }
+
+
+}
+TreeNode* stmt_sequence(){
+    
+
+}
+void decl(){//decl = type_specifer varlist
+    type_specifer();
+    varlist();
+}
+void type_specifer(){//int|bool|string
+    nextToken();
+    if(matchType(TK_INT)){
+       symManager->currentType=TK_INT; 
+    }else if(matchType(TK_BOOL)){
+       symManager->currentType=TK_BOOL; 
+    }else if(matchType(TK_STR)){
+       symManager->currentType=TK_STR; 
+    }
+}
+void varlist(){//identifiers [, varlist]
+    nextToken();
+    while(matchType(TK_ID)){
+        Sym* tmpSym = new Sym;
+        tmpSym->token=token;
+        if(symManager->currentType==TK_INT){
+            tmpSym->valType=VTYPE_INT;
+        }else if(symManager->currentType==TK_BOOL){
+            tmpSym->valType=VTYPE_BOOL;
+        }else if(symManager->currentType==TK_STR){
+            tmpSym->valType=VTYPE_STR;
+        }
+        tmpSym->objType=OTYPE_VAR;
+        symManager->insert(tmpSym);
+        nextToken();
+        if(!matchType(TK_COMMA)){
+              return;
+        }
+        nextToken();
+        
+    }
+    return;
+}
+TreeNode* statement(){
+
+}
+TreeNode* if_stmt(){
+
+}
+TreeNode* repeat_stmt(){
+
+}
+TreeNode* assign_stmt(){
+
+}
+TreeNode* read_stmt(){
+
+}
+TreeNode* write_stmt(){
+
+}
+TreeNode* while_stmt(){
+
+}
+TreeNode* logical_or_exp(){
+
+}
+TreeNode* logical_and_exp(){
+
+}
+TreeNode* comparison_exp(){
+
+}
+TreeNode* add_exp(){
+
+}
+TreeNode* mul_exp(){
+
+}
+TreeNode* addop(){
+
+}
+TreeNode* factor(){
+
+}
+TreeNode* mulop(){
+
+}
+
+
