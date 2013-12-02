@@ -53,7 +53,10 @@ string tokenString[TokenLength]={
     "TK_MUL","TK_DIV","TK_LP","TK_RP","TK_LSS","TK_EQU"
 };
 //TOKEN对
-typedef struct token{
+typedef class _Token{
+    public:
+    _Token():value(""){
+    }
 	TokenType kind;	
 	string value;
 } Token;
@@ -70,9 +73,9 @@ enum ObjType{
 };
 
 enum ValType{
-    VTYPE_INT,
-    VTYPE_BOOL,
-    VTYPE_STR
+    VTYPE_INT=1,
+    VTYPE_BOOL=2,
+    VTYPE_STR=3
 };
 
 class Sym{
@@ -140,13 +143,25 @@ enum NodeType{
 
 };
 
-typedef struct _TreeNode{
+class TreeNode{
+public:
+    TreeNode(){
+        child[0] = NULL; 
+        child[1] = NULL; 
+        child[2] = NULL; 
+    }
+    TreeNode(NodeType nt,TreeNode* l,TreeNode* r){
+        child[0] = l;
+        child[1] = r;
+        child[2] = NULL;
+        nodeType = nt;
+    }
     NodeType nodeType;// 节点类型
     ValType valType;// 节点值类型
-    _TreeNode *child[3];
+    TreeNode *child[3];
 
     Token *token;// 当节点是FACTOR类型时该成员才有效
-}TreeNode;
+};
 
 
 

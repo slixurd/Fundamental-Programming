@@ -50,7 +50,7 @@ void inform(int state){
 }
 void getToken(){
     
-    Token tmpToken;
+    Token *tmpToken;
 	origin = new fstream("/home/slixurd/university/tiny/tinyplus/in",ios::in);
     int currentState = START;
     string currentWord = "";
@@ -59,7 +59,7 @@ void getToken(){
         cout << "INPUT FILE ERROR";
     }else{
         while(true){
-            
+                    
             switch(currentState){
                 case START:
                     //NUM = d* , d>0&&d<9
@@ -92,10 +92,11 @@ void getToken(){
                     break;
                 case NUM:
                     if(isSym(currentLetter)||isDelim(currentLetter)){
-
-                        tmpToken.kind = TK_INT; 
-                        tmpToken.value=currentWord;
-                        tokenList.push_back(tmpToken);
+                        tmpToken=new Token; 
+                        tmpToken->kind = TK_INT; 
+                        tmpToken->value+=currentWord;
+                            tmpToken->value+="";
+                        tokenList.push_back((*tmpToken));
                         cout<<" (NUM "<<currentWord<<") ";
                         currentWord="";
                         currentState = START;
@@ -126,14 +127,18 @@ void getToken(){
                         currentWord += currentLetter; 
                     }else {
                         if(isKey(currentWord)){
-                            tmpToken.kind = matchToken(currentWord);
-                            tmpToken.value=currentWord;
-                            tokenList.push_back(tmpToken);
+                        tmpToken=new Token; 
+                            tmpToken->kind = matchToken(currentWord);
+                            tmpToken->value+=currentWord;
+                            tmpToken->value+="";
+                            tokenList.push_back((*tmpToken));
                             cout<<" (KEY "<<currentWord<<") ";
                         }else{ 
-                            tmpToken.kind = TK_ID;
-                            tmpToken.value=currentWord;
-                            tokenList.push_back(tmpToken);
+                        tmpToken=new Token; 
+                            tmpToken->kind = TK_ID;
+                            tmpToken->value+=currentWord;
+                            tmpToken->value+="";
+                            tokenList.push_back((*tmpToken));
                             cout<<" (ID "<<currentWord<<") ";
                         }
                         currentState = START;
@@ -150,9 +155,11 @@ void getToken(){
                     }else
                     while(true){
                         if(currentLetter=='\''){
-                            tmpToken.kind = TK_STR; 
-                            tmpToken.value=currentWord;
-                            tokenList.push_back(tmpToken);
+                        tmpToken=new Token; 
+                            tmpToken->kind = TK_STR; 
+                            tmpToken->value+=currentWord;
+                            tmpToken->value+="";
+                            tokenList.push_back((*tmpToken));
                             cout<<" (STR ";
                             cout<<currentWord<<") ";
                             break;
@@ -192,9 +199,12 @@ void getToken(){
                         cout<<"\nERROR,NO SUCH SYMBOL;\n";
                     }
                     else{
-                        tmpToken.kind = matchToken(currentWord);
-                        tmpToken.value=currentWord;
-                        tokenList.push_back(tmpToken);
+                        tmpToken=new Token; 
+                        tmpToken->kind = matchToken(currentWord);
+                        tmpToken->value+=currentWord;
+                        
+                            tmpToken->value+="";
+                        tokenList.push_back((*tmpToken));
                         cout<<" (SYM "<< currentWord<<") ";
                     }
                     currentState = START;
@@ -227,6 +237,10 @@ int main(){
     symManager=new SymManager();
     getToken();
     program();
+
+
+    string _f="sss";
+    cout<<"Type "<<symManager->find(_f)->valType<<" "<<tokenString[symManager->find(_f)->token->kind]<<" value "<<symManager->find(_f)->token->value<<endl;
 
     /*
      while(!tokenList.empty()){//获取所有token
@@ -310,33 +324,34 @@ void nextToken(){
 }
 
 void unNextToken(){
-    if(token!=NULL)
-      tokenList.push_front(*token);
+    if(token!=NULL){
+        tokenList.push_front(*token);
+    }
 }
 
-TreeNode* program(){
+TreeNode* program(){//program -> declarations stmt_sequence
     cout<<"\n===========declarations分析============="<<endl;
     declarations();
-    return stmt_sequence();
+    //return stmt_sequence();
 }
+//==========================
+//变量声明分析
+//==========================
 TreeNode* declarations(){//declaration -> decl;declarations|nil
     decl();
-    cout<<"========\n";
     if(matchType(TK_SEMICOLON)){
         nextToken();
-            cout<<tokenString[token->kind]<<"sss";
         if(token->kind==TK_BOOL||token->kind==TK_INT||token->kind==TK_STR){
             unNextToken();
             declarations();    
+        }else{
+            unNextToken();
+            cout<<"\n=========变量声明结束===========\n";
         }
     }else{
         cout<<"错误匹配\n";
     }
 
-
-}
-TreeNode* stmt_sequence(){
-    
 
 }
 void decl(){//decl = type_specifer varlist
@@ -376,7 +391,23 @@ void varlist(){//identifiers [, varlist]
     }
     return;
 }
-TreeNode* statement(){
+//======================
+//基本语句解析
+//======================
+TreeNode* stmt_sequence(){//stmt-sequence -> statment[;stmt-sequence]
+    TreeNode* merge;
+    TreeNode* left;
+    left = statement();
+    if(matchType(TK_SEMICOLON)){
+        TreeNode* right;
+        right = stmt_sequence(); 
+        merge=new TreeNode(STMT_SEQUENCE,left,right);
+    }else{
+        merge=left;
+    }
+    return merge;
+}
+TreeNode* statement(){//if-stmt|repeat-stmt|read-stmt|write-stmt|while-stmt
 
 }
 TreeNode* if_stmt(){
