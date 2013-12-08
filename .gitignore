@@ -4,4 +4,5 @@
 *.7z
 main
 tmp
+*.dat
 .*.swap
