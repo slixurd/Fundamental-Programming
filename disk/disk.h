@@ -19,6 +19,7 @@ struct SuperBlock{
     long unusedInodeCount;//未使用inode数目
     long totalInodeCount;//总计inode数目
     long blockGroupCount;//block组数目
+    int blockGroupSize;//block组大小
     int blockPerGroupNum;//每组block数目
     int inodePerGroupNum;//每组inode数目
 };
@@ -72,26 +73,15 @@ public:
     
     }
 
-    bool initDisk(int _blockSize){
-        if(!fs)
-            return false;
-        superBlock = new SuperBlock;
-        bs=_blockSize;
-        superBlock->blockSize = _blockSize;
-        
-        // get the size of the whole disk
-        fs->clear();
-        fs->seekg(0,ios::end);
-        diskSize = fs->tellg();
-        // count the number of block when the size and block size defined;
-        superBlock->totalBlockCount = diskSize/_blockSize;
-        superBlock->unusedBlockCount=superBlock->totalBlockCount;
-        // map仅占用一个blocksize
-
-        
-        
+    bool initDisk(int _blockSize);
+    void sbPrint(){
+        cout<<"diskSize\t\t"<<diskSize<<endl;
+        cout<<"blockSize\t\t"<<superBlock->blockSize<<endl;
+        cout<<"BlockCount\t\t"<<superBlock->unusedBlockCount<<endl;
+        cout<<"BgSize\t\t"<<superBlock->blockGroupSize<<endl;
+        cout<<"blockGroupCount\t\t"<<superBlock->blockGroupCount<<endl;
+        cout<<"inodeCount\t\t"<<superBlock->totalInodeCount<<endl;
     }
-
 //文件操作列表
 
 
@@ -106,7 +96,8 @@ private:
     int diskSize;
     int bs;
     int bitmapSize;
-
+    GDT* cGDT;
+    bitset<4096> *bm;//block可以为1,2,4k,以最大4k设计bitmap
     SuperBlock *superBlock;
     fstream* fs;
     

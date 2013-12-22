@@ -17,16 +17,14 @@ void bm(){
 }
 
 int main(){
-    
-        bm();
-    int j=0x65171734;
-    bitset<512> inodeMap(j);
+    fstream *f;
+    f=new fstream;
+    f->open("./a.dat",ios::in|ios::out|ios::binary);
+    FileSystem fs(f);
+    fs.initDisk(1024);
+    fs.sbPrint();
     //fstream f("./a.dat",ios::out|ios::binary);
     //f.write((char*)&inodeMap,2);
-    fstream f("./a.dat",ios::in|ios::binary);
-    int al;
-    f.read((char*)&al,2);
-    cout<<al;
     
     //SuperBlock s;
     //s.blockSize=1024;
@@ -42,3 +40,50 @@ int main(){
     //f.close();
 }
 
+bool FileSystem::initDisk(int _blockSize){
+        if(!fs)
+            return false;
+//==============superblock=================== 
+        superBlock = new SuperBlock;
+        bs=_blockSize;
+        superBlock->blockSize = _blockSize;
+        // get the size of the whole disk
+        fs->clear();
+        fs->seekg(0,ios::end);
+        diskSize = fs->tellg();
+        // count the number of block when the size and block size defined;
+        superBlock->totalBlockCount = diskSize/_blockSize;
+        superBlock->unusedBlockCount = superBlock->totalBlockCount;
+        //block组数目 = 总disk大小/每个group大小
+        int bgSize=bs*8*bs;
+        int bgCount=0;
+        superBlock->blockGroupSize=bgSize;
+        if(diskSize%bgSize!=0){
+           bgCount = diskSize/bgSize + 1; 
+        }
+        superBlock->blockGroupCount = bgCount;
+        //inode数量
+        superBlock->totalInodeCount = bs*8;
+        superBlock->unusedInodeCount = bs*8;
+        //每组block数目=inode的数目=8*blocksize
+        //因此每组大小为num*bs = bs^2*8
+        //1024byte的bs大小,bitmap为8192个,一组为8m
+        //2048byte,bitmap=16k,一组32m
+        //4096byte,bitmap=32k,一组128m
+        superBlock->blockPerGroupNum = bs*8;
+        superBlock->inodePerGroupNum = bs*8;
+
+//============superblock end=================
+
+//============GDT start=====================
+    
+    
+
+
+
+//============GDT end=======================
+        // map仅占用一个blocksize
+        bm = new bitset<4096>;
+        bm->reset();
+
+};

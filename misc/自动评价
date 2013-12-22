@@ -1,0 +1,16 @@
+脚本如下,先加载JQuery
+var jq = document.createElement('script');
+jq.src = "https://ajax.googleapis.com/ajax/libs/jquery/1.9.0/jquery.min.js";
+document.getElementsByTagName('head')[0].appendChild(jq);
+jQuery.noConflict();
+然后进入评分界面
+
+var c = $('body').find('iframe').contents().find("tbody tr").find("select");
+var list2=c.nextAll().find("option");
+for(var i=1;i<100;i=i+1){c.eq(i).find("option").eq(Math.floor(Math.random()*4+2)).attr("selected","selected")}
+$('body').find('iframe').contents().find("tbody tr").find("textarea").html("老师课内外均乐于答疑解惑,通过该课程的学习，我觉得很有收获")
+$('body').find('iframe').contents().find("#Button1").click()
+
+为了防止没有加载完成的错误,所以每一次评价都需要等网页加载完成粘贴一次.
+Math.floor(Math.random()*4+2)是评分
+find("textarea").html("老师课内外均乐于答疑解惑,通过该课程的学习，我觉得很有收获")为文字评价,自己写够20字就好
